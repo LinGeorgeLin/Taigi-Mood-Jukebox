@@ -9,7 +9,10 @@ interface MoodsResponse {
   error?: string;
 }
 
-const MOODS_API_URL = getApiUrl("/api/moods");
+const MOODS_API_URL = getApiUrl(
+  "/api/moods",
+  process.env.NEXT_PUBLIC_MOODS_API_URL,
+);
 const GOOGLE_SHEET_WEBHOOK_URL = process.env.NEXT_PUBLIC_GOOGLE_SHEET_WEBHOOK_URL || "";
 
 interface Step1MoodSelectProps {

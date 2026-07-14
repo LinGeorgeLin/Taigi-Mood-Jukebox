@@ -13,7 +13,10 @@ interface MoodAsrResponse {
   error?: string;
 }
 
-const MOOD_ASR_API_URL = getApiUrl("/api/mood-asr");
+const MOOD_ASR_API_URL = getApiUrl(
+  "/api/mood-asr",
+  process.env.NEXT_PUBLIC_MOOD_ASR_API_URL,
+);
 
 interface Step2RecordingProps {
   mood: Mood;

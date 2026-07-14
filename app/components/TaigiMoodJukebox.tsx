@@ -40,8 +40,14 @@ interface MoodAsrResponse {
   error?: string;
 }
 
-const MOODS_API_URL = getApiUrl("/api/moods");
-const MOOD_ASR_API_URL = getApiUrl("/api/mood-asr");
+const MOODS_API_URL = getApiUrl(
+  "/api/moods",
+  process.env.NEXT_PUBLIC_MOODS_API_URL,
+);
+const MOOD_ASR_API_URL = getApiUrl(
+  "/api/mood-asr",
+  process.env.NEXT_PUBLIC_MOOD_ASR_API_URL,
+);
 const GOOGLE_SHEET_WEBHOOK_URL =
   process.env.NEXT_PUBLIC_GOOGLE_SHEET_WEBHOOK_URL || "";
 
