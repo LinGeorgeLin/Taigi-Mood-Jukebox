@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Taigi-Mood-Jukebox",
+  title: "情壞留聲機",
   description: "聽懂你的台語，理解你的心情。用一句台語說出你的心聲，讓我們為你解鎖專屬的心情主題曲，用音樂陪伴你的喜怒哀樂。",
 };
 
