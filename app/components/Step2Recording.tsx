@@ -51,33 +51,39 @@ export default function Step2Recording({
   // --------------------------------------------------------------------------
   // 送出音訊至 Hugging Face 後端進行辨識 (使用 Gradio Client)
   // --------------------------------------------------------------------------
-  const sendAudioToServer = useCallback(
+const sendAudioToServer = useCallback(
     async (audioBlob: Blob) => {
       setIsLoading(true);
       setErrorMessage(null);
       setShowFailHint(false);
 
       try {
-        // 1. 連接你的 Hugging Face Space 後端
-        const app = await Client.connect("georgelin29/taigi-mood-backend", {
-          token: process.env.NEXT_PUBLIC_HF_TOKEN as `hf_${string}`,
-        });
+        // 1. 建立標準的 FormData 表單，用來封裝檔案與文字資料
+        const formData = new FormData();
+        
+        // ⚠️ 注意：這裡的 "file" 和 "mood" 必須跟 Modal 後端的參數名稱完全一致！
+        // 我們將錄音檔案命名為 recorded_audio.webm 送出
+        formData.append("file", audioBlob, "recorded_audio.webm");
+        formData.append("mood", mood.id);
 
-        // 2. 呼叫後端的 "/analyze" 接口
-        // 請注意：這裡的參數名稱與順序需要與你 Python 後端對齊，以下是常見的寫法。
-        // Gradio 預設會依順序接收參數，或者透過一個陣列傳入：[檔案, 心情ID]
-        const result = await app.predict("/analyze", [
-          audioBlob, // 傳入錄音的 Blob 檔案
-          mood.id, // 傳入心情 ID
-        ]);
-
-        // 3. 解決 unknown 型別問題，將 result 轉為 any 後讀取 data[0] 並解析 JSON
-        const data: MoodAsrResponse = JSON.parse(
-          (result as any).data[0] as string,
+        // 2. 使用標準 fetch 打 Modal 後端的 /api/mood-asr 接口
+        const response = await fetch(
+          "https://lingeorgelin--taigi-mood-backend-fastapi-app.modal.run/api/mood-asr",
+          {
+            method: "POST",
+            body: formData, // fetch 會自動設定正確的 Content-Type: multipart/form-data
+          }
         );
 
-        if (data.error) {
-          setErrorMessage(data.error || "辨識服務發生未知錯誤，請稍後再試。");
+        if (!response.ok) {
+          throw new Error(`HTTP 錯誤！狀態碼: ${response.status}`);
+        }
+
+        // 3. 直接解析 JSON。Modal 回傳的就是乾淨的物件，不需要再經過 JSON.parse
+        const data: MoodAsrResponse = await response.json();
+
+        if ((data as any).error) {
+          setErrorMessage((data as any).error || "辨識服務發生未知錯誤，請稍後再試。");
           return;
         }
 

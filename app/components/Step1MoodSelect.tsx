@@ -45,26 +45,27 @@ export default function Step1MoodSelect({
   // --------------------------------------------------------------------------
   // 載入心情題庫 (使用 Gradio Client 讀取 Hugging Face Space)
   // --------------------------------------------------------------------------
-  useEffect(() => {
+ useEffect(() => {
     async function loadMoods() {
       setIsMoodsLoading(true);
       setMoodsError(null);
       try {
-        // 1. 連接你的 Hugging Face Space 後端
-        const app = await Client.connect("georgelin29/taigi-mood-backend", {
-          token: process.env.NEXT_PUBLIC_HF_TOKEN as `hf_${string}`,
-        });
-
-        // 2. 呼叫後端定義好的 "/get_moods" 接口 (不用帶入任何參數 [])
-        const result = await app.predict("/get_moods", []);
-
-        // 3. Gradio 回傳的字串存放在 result.data[0]，我們將它解析為 JSON
-        const data: MoodsResponse = JSON.parse(
-          (result as any).data[0] as string,
+        // 1. 直接使用標準 fetch 呼叫 Modal 的 GET /api/moods 接口
+        const response = await fetch(
+          "https://lingeorgelin--taigi-mood-backend-fastapi-app.modal.run/api/moods"
         );
 
-        if (data.error || !data.moods) {
-          setMoodsError(data.error || "無法載入心情題庫，請稍後再試。");
+        // 檢查網路連線狀態是否正常 (200 OK)
+        if (!response.ok) {
+          throw new Error(`HTTP 錯誤！狀態碼: ${response.status}`);
+        }
+
+        // 2. 解析 JSON。Modal 後端回傳的就是乾淨的 JSON 物件，不需再透過 JSON.parse 轉換
+        const data: MoodsResponse = await response.json();
+
+        // 3. 檢查後端回傳的資料結構是否有錯誤或沒拿到題目
+        if ((data as any).error || !data.moods) {
+          setMoodsError((data as any).error || "無法載入心情題庫，請稍後再試。");
           return;
         }
 

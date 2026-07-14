@@ -242,28 +242,30 @@ export default function Page() {
   // ==========================================================================
   // 載入心情題庫 (使用 Gradio Client 讀取 Hugging Face Space)
   // ==========================================================================
-  useEffect(() => {
+useEffect(() => {
     async function loadMoods() {
       setIsMoodsLoading(true);
       setMoodsError(null);
       try {
-        // 1. 連接你的 Hugging Face Space 後端
-        const app = await Client.connect("georgelin29/taigi-mood-backend", {
-          token: process.env.NEXT_PUBLIC_HF_TOKEN as `hf_${string}`,
-        });
+        // 1. 直接使用標準 fetch 呼叫 Modal 後端的 GET /api/moods 接口
+        const response = await fetch(
+          "https://lingeorgelin--taigi-mood-backend-fastapi-app.modal.run/api/moods"
+        );
 
-        // 2. 呼叫後端定義好的 "/get_moods" 接口
-        const result = await app.predict("/get_moods", []);
+        if (!response.ok) {
+          throw new Error(`HTTP 錯誤！狀態碼: ${response.status}`);
+        }
 
-        // 3. 解決 TS unknown 型別，將 result 強制轉 any 後轉為 JSON
-        const data: MoodsResponse = JSON.parse((result as any).data[0] as string);
+        // 2. 解析 JSON。Modal 後端直接回傳乾淨的物件，不需再透過 JSON.parse
+        const data: MoodsResponse = await response.json();
 
-        if (data.error || !data.moods) {
-          setMoodsError(data.error || "無法載入心情題庫，請稍後再試。");
+        // 3. 檢查後端回傳的資料結構是否有錯誤或沒拿到題目
+        if ((data as any).error || !data.moods) {
+          setMoodsError((data as any).error || "無法載入心情題庫，請稍後再試。");
           return;
         }
         
-        // 4. 更新心情 State
+        // 4. 更新心情 State，畫面就會順利渲染
         setMoods(data.moods);
       } catch (err) {
         console.error("載入心情題庫時發生錯誤：", err);
@@ -273,7 +275,7 @@ export default function Page() {
       }
     }
     void loadMoods();
-  }, []);;
+  }, []);
 
   // 進入階段 3 時自動產生分享卡片 + 放煙火
   useEffect(() => {
@@ -317,8 +319,9 @@ export default function Page() {
 // ==========================================================================
   // 送出音訊至 Hugging Face 後端進行辨識 (使用 Gradio Client)
   // ==========================================================================
-  const sendAudioToServer = useCallback(
+const sendAudioToServer = useCallback(
     async (audioBlob: Blob) => {
+      // 如果還沒選擇心情，直接攔截不執行
       if (!selectedMood) return;
 
       setIsLoading(true);
@@ -326,34 +329,43 @@ export default function Page() {
       setShowFailHint(false);
 
       try {
-        // 1. 連接你的 Hugging Face Space 後端
-        const app = await Client.connect("georgelin29/taigi-mood-backend", {
-          token: process.env.NEXT_PUBLIC_HF_TOKEN as `hf_${string}`,
-        });
+        // 1. 建立標準的 FormData 表單，包裝要傳給 FastAPI 的資料
+        const formData = new FormData();
+        
+        // ⚠️ 注意：欄位名稱 "file" 與 "mood" 必須對齊 Modal 後端的參數名稱
+        formData.append("file", audioBlob, "recorded_audio.webm");
+        formData.append("mood", selectedMood.id);
 
-        // 2. 呼叫後端的 "/analyze" 接口
-        // 依序傳入：[錄音 Blob 檔案, 當前選擇的心情 ID]
-        const result = await app.predict("/analyze", [
-          audioBlob,
-          selectedMood.id,
-        ]);
+        // 2. 使用標準 fetch 呼叫 Modal 後端的 /api/mood-asr 接口
+        const response = await fetch(
+          "https://lingeorgelin--taigi-mood-backend-fastapi-app.modal.run/api/mood-asr",
+          {
+            method: "POST",
+            body: formData, // fetch 會自動幫你加上正確的 multipart/form-data 標頭
+          }
+        );
 
-        // 3. 解析 JSON
-        const data: MoodAsrResponse = JSON.parse((result as any).data[0] as string);
+        if (!response.ok) {
+          throw new Error(`HTTP 錯誤！狀態碼: ${response.status}`);
+        }
 
-        if (data.error) {
-          setErrorMessage(data.error || "辨識服務發生未知錯誤，請稍後再試。");
+        // 3. 直接解析 JSON，不需要再經過 JSON.parse 轉換字串
+        const data: MoodAsrResponse = await response.json();
+
+        if ((data as any).error) {
+          setErrorMessage((data as any).error || "辨識服務發生未知錯誤，請稍後再試。");
           return;
         }
 
+        // 4. 將解析後的資料帶入你原本的畫面控制邏輯中
         setMatchReason(data.reason ?? "");
 
         if (data.is_match && data.spotify_embed_url) {
           setSpotifyEmbedUrl(data.spotify_embed_url);
           setSpotifyUrl(data.spotify_url ?? null);
-          goToStage(3);
+          goToStage(3); // 成功過關，跳轉到 Stage 3 播放音樂！
         } else {
-          setShowFailHint(true);
+          setShowFailHint(true); // 失敗，顯示挑戰失敗提示
         }
       } catch (err) {
         console.error("送出音訊時發生錯誤：", err);
@@ -362,7 +374,7 @@ export default function Page() {
         setIsLoading(false);
       }
     },
-    [selectedMood, goToStage],
+    [selectedMood, goToStage], // 依賴項完全對齊你的原本邏輯
   );
 
   const startRecording = useCallback(async () => {
