@@ -51,13 +51,17 @@ export default function Step1MoodSelect({
       setMoodsError(null);
       try {
         // 1. 連接你的 Hugging Face Space 後端
-        const app = await Client.connect("georgelin29/taigi-mood-backend");
+        const app = await Client.connect("georgelin29/taigi-mood-backend", {
+          token: process.env.NEXT_PUBLIC_HF_TOKEN as `hf_${string}`,
+        });
 
         // 2. 呼叫後端定義好的 "/get_moods" 接口 (不用帶入任何參數 [])
         const result = await app.predict("/get_moods", []);
 
         // 3. Gradio 回傳的字串存放在 result.data[0]，我們將它解析為 JSON
-        const data: MoodsResponse = JSON.parse((result as any).data[0] as string);
+        const data: MoodsResponse = JSON.parse(
+          (result as any).data[0] as string,
+        );
 
         if (data.error || !data.moods) {
           setMoodsError(data.error || "無法載入心情題庫，請稍後再試。");

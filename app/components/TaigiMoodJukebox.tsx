@@ -248,7 +248,9 @@ export default function Page() {
       setMoodsError(null);
       try {
         // 1. 連接你的 Hugging Face Space 後端
-        const app = await Client.connect("georgelin29/taigi-mood-backend");
+        const app = await Client.connect("georgelin29/taigi-mood-backend", {
+          token: process.env.NEXT_PUBLIC_HF_TOKEN as `hf_${string}`,
+        });
 
         // 2. 呼叫後端定義好的 "/get_moods" 接口
         const result = await app.predict("/get_moods", []);
@@ -325,7 +327,9 @@ export default function Page() {
 
       try {
         // 1. 連接你的 Hugging Face Space 後端
-        const app = await Client.connect("georgelin29/taigi-mood-backend");
+        const app = await Client.connect("georgelin29/taigi-mood-backend", {
+          token: process.env.NEXT_PUBLIC_HF_TOKEN as `hf_${string}`,
+        });
 
         // 2. 呼叫後端的 "/analyze" 接口
         // 依序傳入：[錄音 Blob 檔案, 當前選擇的心情 ID]
