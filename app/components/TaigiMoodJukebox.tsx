@@ -5,11 +5,11 @@ import {
   useRef,
   useCallback,
   useEffect,
-  type FormEvent,
 } from "react";
 import { getApiUrl } from "../lib/api";
 import { IGShareCard } from "../IGShareCard";
 import * as htmlToImage from "html-to-image";
+import { Client } from "@gradio/client";
 
 // ============================================================================
 // 型別定義
@@ -40,14 +40,6 @@ interface MoodAsrResponse {
   error?: string;
 }
 
-const MOODS_API_URL = getApiUrl(
-  "/api/moods",
-  process.env.NEXT_PUBLIC_MOODS_API_URL,
-);
-const MOOD_ASR_API_URL = getApiUrl(
-  "/api/mood-asr",
-  process.env.NEXT_PUBLIC_MOOD_ASR_API_URL,
-);
 const GOOGLE_SHEET_WEBHOOK_URL =
   process.env.NEXT_PUBLIC_GOOGLE_SHEET_WEBHOOK_URL || "";
 
@@ -247,20 +239,29 @@ export default function Page() {
     };
   }, []);
 
-  // --------------------------------------------------------------------------
-  // 載入心情題庫
-  // --------------------------------------------------------------------------
+  // ==========================================================================
+  // 載入心情題庫 (使用 Gradio Client 讀取 Hugging Face Space)
+  // ==========================================================================
   useEffect(() => {
     async function loadMoods() {
       setIsMoodsLoading(true);
       setMoodsError(null);
       try {
-        const response = await fetch(MOODS_API_URL);
-        const data: MoodsResponse = await response.json();
-        if (!response.ok || data.error || !data.moods) {
+        // 1. 連接你的 Hugging Face Space 後端
+        const app = await Client.connect("georgelin29/taigi-mood-backend");
+
+        // 2. 呼叫後端定義好的 "/get_moods" 接口
+        const result = await app.predict("/get_moods", []);
+
+        // 3. 解決 TS unknown 型別，將 result 強制轉 any 後轉為 JSON
+        const data: MoodsResponse = JSON.parse((result as any).data[0] as string);
+
+        if (data.error || !data.moods) {
           setMoodsError(data.error || "無法載入心情題庫，請稍後再試。");
           return;
         }
+        
+        // 4. 更新心情 State
         setMoods(data.moods);
       } catch (err) {
         console.error("載入心情題庫時發生錯誤：", err);
@@ -270,7 +271,7 @@ export default function Page() {
       }
     }
     void loadMoods();
-  }, []);
+  }, []);;
 
   // 進入階段 3 時自動產生分享卡片 + 放煙火
   useEffect(() => {
@@ -311,9 +312,9 @@ export default function Page() {
     goToStage(2);
   }, [selectedMood, goToStage]);
 
-  // --------------------------------------------------------------------------
-  // 階段 2：錄音 → 送出辨識
-  // --------------------------------------------------------------------------
+// ==========================================================================
+  // 送出音訊至 Hugging Face 後端進行辨識 (使用 Gradio Client)
+  // ==========================================================================
   const sendAudioToServer = useCallback(
     async (audioBlob: Blob) => {
       if (!selectedMood) return;
@@ -323,17 +324,20 @@ export default function Page() {
       setShowFailHint(false);
 
       try {
-        const formData = new FormData();
-        formData.append("file", audioBlob, "recording.webm");
-        formData.append("mood", selectedMood.id);
+        // 1. 連接你的 Hugging Face Space 後端
+        const app = await Client.connect("georgelin29/taigi-mood-backend");
 
-        const response = await fetch(MOOD_ASR_API_URL, {
-          method: "POST",
-          body: formData,
-        });
-        const data: MoodAsrResponse = await response.json();
+        // 2. 呼叫後端的 "/analyze" 接口
+        // 依序傳入：[錄音 Blob 檔案, 當前選擇的心情 ID]
+        const result = await app.predict("/analyze", [
+          audioBlob,
+          selectedMood.id,
+        ]);
 
-        if (!response.ok || data.error) {
+        // 3. 解析 JSON
+        const data: MoodAsrResponse = JSON.parse((result as any).data[0] as string);
+
+        if (data.error) {
           setErrorMessage(data.error || "辨識服務發生未知錯誤，請稍後再試。");
           return;
         }
@@ -494,11 +498,11 @@ export default function Page() {
     goToStage(1);
   }, [goToStage]);
 
-  // --------------------------------------------------------------------------
-  // 社群投稿表單：送出到 /api/submit_mood_song
-  // --------------------------------------------------------------------------
+// ==========================================================================
+  // 投稿心情歌曲 (維持使用原本 fetch Google Webhook 機制，不受影響)
+  // ==========================================================================
   const handleSubmitMoodSong = useCallback(
-    async (event: FormEvent<HTMLFormElement>) => {
+    async (event: React.SyntheticEvent<HTMLFormElement, SubmitEvent>) => {
       event.preventDefault();
       setSubmitError(null);
 
@@ -522,12 +526,7 @@ export default function Page() {
       setIsSubmitting(true);
 
       try {
-        // 注意：Content-Type 故意用 text/plain，不是 application/json。
-        // Google Apps Script 的 Web App 端點不支援瀏覽器的 CORS 預檢請求（OPTIONS），
-        // 只要 fetch 帶了 application/json，瀏覽器就會先送一個預檢請求探路，
-        // Apps Script 完全不會處理，會直接失敗。用 text/plain 會被瀏覽器判定成
-        // 「簡單請求」而跳過預檢，Apps Script 那邊一樣把收到的內容當 JSON 解析即可，
-        // 這是繞過這個限制最普遍也最穩定的做法。
+        // 繼續使用 text/plain 的方式繞過 Apps Script 的 CORS 限制
         const response = await fetch(GOOGLE_SHEET_WEBHOOK_URL, {
           method: "POST",
           headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -546,15 +545,12 @@ export default function Page() {
           return;
         }
 
-        // 成功後收起表單、清空欄位，並用既有的 Toast 機制顯示感謝訊息
         setSubmitMoodId("");
         setSubmitSuggestedText("");
         setSubmitSpotifyUrl("");
         setIsSubmitFormOpen(false);
         showToast("感謝投稿！審核通過後將即時上線 🎵");
       } catch (err) {
-        // 如果這裡噴錯，十之八九是 Apps Script 部署設定的「誰可以存取」沒選對，
-        // 或是 Web App 網址複製錯誤，先去檢查這兩個地方。
         console.error("送出投稿時發生錯誤：", err);
         setSubmitError("無法連接投稿服務，請稍後再試。");
       } finally {

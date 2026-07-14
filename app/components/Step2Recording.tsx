@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import type { Mood } from "./types";
 import { getApiUrl } from "../lib/api";
+import { Client } from "@gradio/client";
 
 interface MoodAsrResponse {
   text?: string;
@@ -47,7 +48,9 @@ export default function Step2Recording({
     const timer = setTimeout(() => setMounted(true), 20);
     return () => clearTimeout(timer);
   }, []);
-
+// --------------------------------------------------------------------------
+  // 送出音訊至 Hugging Face 後端進行辨識 (使用 Gradio Client)
+  // --------------------------------------------------------------------------
   const sendAudioToServer = useCallback(
     async (audioBlob: Blob) => {
       setIsLoading(true);
@@ -55,21 +58,26 @@ export default function Step2Recording({
       setShowFailHint(false);
 
       try {
-        const formData = new FormData();
-        formData.append("file", audioBlob, "recording.webm");
-        formData.append("mood", mood.id);
+        // 1. 連接你的 Hugging Face Space 後端
+        const app = await Client.connect("georgelin29/taigi-mood-backend");
 
-        const response = await fetch(MOOD_ASR_API_URL, {
-          method: "POST",
-          body: formData,
-        });
-        const data: MoodAsrResponse = await response.json();
+        // 2. 呼叫後端的 "/analyze" 接口
+        // 請注意：這裡的參數名稱與順序需要與你 Python 後端對齊，以下是常見的寫法。
+        // Gradio 預設會依順序接收參數，或者透過一個陣列傳入：[檔案, 心情ID]
+        const result = await app.predict("/analyze", [
+          audioBlob, // 傳入錄音的 Blob 檔案
+          mood.id,   // 傳入心情 ID
+        ]);
 
-        if (!response.ok || data.error) {
+        // 3. 解決 unknown 型別問題，將 result 轉為 any 後讀取 data[0] 並解析 JSON
+        const data: MoodAsrResponse = JSON.parse((result as any).data[0] as string);
+
+        if (data.error) {
           setErrorMessage(data.error || "辨識服務發生未知錯誤，請稍後再試。");
           return;
         }
 
+        // 4. 將解析後的資料帶入你原本的邏輯中
         setMatchReason(data.reason ?? "");
 
         if (data.is_match && data.spotify_embed_url) {
@@ -84,7 +92,7 @@ export default function Step2Recording({
         setIsLoading(false);
       }
     },
-    [mood, onUnlock],
+    [mood, onUnlock], // 依賴項保持不變
   );
 
   const startRecording = useCallback(async () => {
