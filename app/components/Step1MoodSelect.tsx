@@ -45,14 +45,14 @@ export default function Step1MoodSelect({
   // --------------------------------------------------------------------------
   // 載入心情題庫 (使用 Gradio Client 讀取 Hugging Face Space)
   // --------------------------------------------------------------------------
- useEffect(() => {
+  useEffect(() => {
     async function loadMoods() {
       setIsMoodsLoading(true);
       setMoodsError(null);
       try {
         // 1. 直接使用標準 fetch 呼叫 Modal 的 GET /api/moods 接口
         const response = await fetch(
-          "https://lingeorgelin--taigi-mood-backend-fastapi-app.modal.run/api/moods"
+          "https://lingeorgelin--taigi-mood-backend-fastapi-app.modal.run/api/moods",
         );
 
         // 檢查網路連線狀態是否正常 (200 OK)
@@ -65,7 +65,9 @@ export default function Step1MoodSelect({
 
         // 3. 檢查後端回傳的資料結構是否有錯誤或沒拿到題目
         if ((data as any).error || !data.moods) {
-          setMoodsError((data as any).error || "無法載入心情題庫，請稍後再試。");
+          setMoodsError(
+            (data as any).error || "無法載入心情題庫，請稍後再試。",
+          );
           return;
         }
 
@@ -145,7 +147,7 @@ export default function Step1MoodSelect({
   );
 
   return (
-    <div className="flex h-full w-full flex-col items-center justify-between overflow-y-auto p-4 md:p-8">
+    <div className="flex min-h-full h-auto w-full flex-col items-center justify-betweenn p-4 md:p-8">
       <div className="flex-1" />
 
       <div className="flex w-full max-w-lg flex-1 flex-col items-center justify-center px-4">
@@ -212,54 +214,69 @@ export default function Step1MoodSelect({
 
       <div className="flex-1" />
 
-      {/* ---------------- 社群投稿：折疊式區塊 ---------------- */}
+      {/* ---------------- 社群投稿：觸發按鈕 ---------------- */}
       {!isMoodsLoading && !moodsError && (
         <div className="w-full max-w-lg px-4 pb-2">
           <button
             type="button"
-            onClick={() => setIsSubmitFormOpen((prev) => !prev)}
+            onClick={() => setIsSubmitFormOpen(true)}
             className="mx-auto flex w-full items-center justify-center gap-2 rounded-full px-4 py-2 text-xs text-gray-500 transition-colors hover:text-gray-300"
-            aria-expanded={isSubmitFormOpen}
           >
-            <span>我有私房厭世台語歌？向留聲機投稿</span>
-            <span
-              className={`transition-transform duration-300 ${
-                isSubmitFormOpen ? "rotate-180" : "rotate-0"
-              }`}
-              aria-hidden="true"
-            >
-              ▾
-            </span>
+            <span>我有私房厭世台語歌？向留聲機投稿 ▴</span>
           </button>
+        </div>
+      )}
 
+      {isSubmitFormOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          {/* 點擊背景可以關閉表單 */}
           <div
-            className={`overflow-hidden transition-all duration-300 ${
-              isSubmitFormOpen
-                ? "mt-4 max-h-[600px] opacity-100"
-                : "max-h-0 opacity-0"
-            }`}
-          >
+            className="absolute inset-0"
+            onClick={() => setIsSubmitFormOpen(false)}
+          />
+
+          {/* 表單主體 */}
+          <div className="relative w-full max-w-md rounded-2xl border border-white/10 bg-neutral-900 p-6 shadow-2xl">
+            {/* 右上角關閉按鈕 */}
+            <button
+              type="button"
+              onClick={() => setIsSubmitFormOpen(false)}
+              className="absolute right-4 top-4 text-gray-500 hover:text-white"
+            >
+              ✕
+            </button>
+
+            <h3 className="mb-4 text-sm font-medium tracking-wider text-gray-300">
+              向留聲機投稿
+            </h3>
+
             <form
               onSubmit={handleSubmitMoodSong}
-              className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/[0.02] p-5"
+              className="flex flex-col gap-4"
             >
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="submit-mood" className="text-xs text-gray-500">
                   選擇心情分類
                 </label>
-                <select
-                  id="submit-mood"
-                  value={submitMoodId}
-                  onChange={(e) => setSubmitMoodId(e.target.value)}
-                  className="w-full rounded-lg border border-white/10 bg-black px-3 py-2.5 text-sm text-gray-200 focus:border-white/30 focus:outline-none"
-                >
-                  <option value="">請選擇...</option>
-                  {moods.map((mood) => (
-                    <option key={mood.id} value={mood.id}>
-                      {mood.label}
-                    </option>
-                  ))}
-                </select>
+                <div className="relative w-full">
+                  <select
+                    id="submit-mood"
+                    value={submitMoodId}
+                    onChange={(e) => setSubmitMoodId(e.target.value)}
+                    className="w-full appearance-none rounded-lg border border-white/10 bg-black px-3 pr-10 py-2.5 text-sm text-gray-200 focus:border-white/30 focus:outline-none"
+                  >
+                    <option value="">請選擇...</option>
+                    {moods.map((mood) => (
+                      <option key={mood.id} value={mood.id}>
+                        {mood.label}
+                      </option>
+                    ))}
+                  </select>
+
+                  <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-500">
+                    <span className="text-[10px]">▼</span>
+                  </div>
+                </div>
               </div>
 
               <div className="flex flex-col gap-1.5">
@@ -298,7 +315,7 @@ export default function Step1MoodSelect({
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="mt-1 w-full rounded-full border border-white/20 bg-white/90 py-2.5 text-xs font-semibold tracking-[0.2em] text-black transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50"
+                className="mt-2 w-full rounded-full border border-white/20 bg-white/90 py-2.5 text-xs font-semibold tracking-[0.2em] text-black transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isSubmitting ? "送出中..." : "送 出 投 稿"}
               </button>

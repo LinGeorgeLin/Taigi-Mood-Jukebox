@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import * as htmlToImage from "html-to-image";
 import type { Mood } from "./types";
+import Link from "next/link";
 
 interface Step3ResultProps {
   mood: Mood;
@@ -40,7 +41,9 @@ function useFireworks() {
     if (!canvas || !ctx) return;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    particlesRef.current = particlesRef.current.filter((p) => p.life < p.maxLife);
+    particlesRef.current = particlesRef.current.filter(
+      (p) => p.life < p.maxLife,
+    );
 
     particlesRef.current.forEach((p) => {
       p.x += p.vx;
@@ -83,13 +86,15 @@ function useFireworks() {
           vy: Math.sin(angle) * speed,
           life: 0,
           maxLife: 60 + Math.random() * 30,
-          color: PARTICLE_COLORS[Math.floor(Math.random() * PARTICLE_COLORS.length)],
+          color:
+            PARTICLE_COLORS[Math.floor(Math.random() * PARTICLE_COLORS.length)],
           size: 2 + Math.random() * 3,
         });
       }
     }
 
-    if (frameRef.current === null) frameRef.current = requestAnimationFrame(loop);
+    if (frameRef.current === null)
+      frameRef.current = requestAnimationFrame(loop);
   }, [loop]);
 
   useEffect(() => {
@@ -140,7 +145,9 @@ export default function Step3Result({
   const [shareImageUrl, setShareImageUrl] = useState<string | null>(null);
   const [shareBlob, setShareBlob] = useState<Blob | null>(null);
   const [isGeneratingShareImage, setIsGeneratingShareImage] = useState(false);
-  const [shareErrorMessage, setShareErrorMessage] = useState<string | null>(null);
+  const [shareErrorMessage, setShareErrorMessage] = useState<string | null>(
+    null,
+  );
 
   const { canvasRef, trigger: triggerFireworks } = useFireworks();
 
@@ -198,7 +205,11 @@ export default function Step3Result({
     // Viral Loop：把真實可點擊的 Spotify 連結複製到剪貼簿，
     // 因為分享卡片圖片本身在 IG 限動 / Threads 上沒辦法點擊。
     let clipboardSucceeded = false;
-    if (spotifyUrl && navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+    if (
+      spotifyUrl &&
+      navigator.clipboard &&
+      typeof navigator.clipboard.writeText === "function"
+    ) {
       try {
         await navigator.clipboard.writeText(spotifyUrl);
         clipboardSucceeded = true;
@@ -207,7 +218,9 @@ export default function Step3Result({
       }
     }
 
-    const file = new File([blob], "taigi-mood-jukebox.png", { type: "image/png" });
+    const file = new File([blob], "taigi-mood-jukebox.png", {
+      type: "image/png",
+    });
     let sharedNatively = false;
 
     if (
@@ -235,7 +248,7 @@ export default function Step3Result({
 
     if (clipboardSucceeded) {
       showToast(
-        "✨ 分享卡片已儲存！專屬歌曲連結已自動複製到您的剪貼簿。在 IG 限動貼上『連結貼紙』，朋友就能一鍵收聽囉！"
+        "✨ 分享卡片已儲存！專屬歌曲連結已自動複製到您的剪貼簿。在 IG 限動貼上『連結貼紙』，朋友就能一鍵收聽囉！",
       );
     } else {
       showToast("✨ 分享卡片已儲存！");
@@ -244,18 +257,21 @@ export default function Step3Result({
 
   return (
     <div
-      className={`flex h-full w-full flex-col items-center p-4 transition-opacity duration-300 md:p-8 ${
+      className={`flex min-h-full w-full flex-col items-center p-4 transition-opacity duration-300 md:p-8 overflow-y-auto no-scrollbar ${
         mounted ? "opacity-100" : "opacity-0"
       }`}
     >
-      <canvas ref={canvasRef} className="pointer-events-none fixed inset-0 z-50" />
+      <canvas
+        ref={canvasRef}
+        className="pointer-events-none fixed inset-0 z-50"
+      />
 
       <p className="mb-4 mt-2 text-center text-base tracking-[0.2em] text-white sm:mb-6 sm:mt-4 sm:text-lg">
         靈 魂 已 共 鳴
       </p>
 
-      <div className="my-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-3 overflow-hidden text-center">
-        <div className="w-full overflow-hidden rounded-2xl shadow-[0_0_60px_rgba(255,255,255,0.06)]">
+      <div className="mb-6 flex w-full max-w-md flex-1 flex-col items-center justify-center gap-4 text-center">
+        <div className="w-full rounded-2xl shadow-[0_0_60px_rgba(255,255,255,0.06)]">
           <iframe
             src={spotifyEmbedUrl}
             width="100%"
@@ -286,27 +302,36 @@ export default function Step3Result({
         </div>
       </div>
 
-      <div className="mb-4 flex w-full max-w-xs flex-col items-center gap-2">
+      <div className="mt-auto flex w-full max-w-xs flex-col items-center gap-2.5 pb-8">
         <button
           type="button"
           onClick={handleShare}
           disabled={isGeneratingShareImage}
-          className="w-full rounded-full border border-white/20 bg-white py-3.5 text-sm font-semibold tracking-widest text-black transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full rounded-full border border-white/20 bg-white py-3.5 text-sm font-semibold tracking-widest text-black transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
         >
           下載並分享到 Threads / IG
         </button>
 
         {shareErrorMessage && (
-          <p className="text-center text-xs text-red-400">{shareErrorMessage}</p>
+          <p className="text-center text-xs text-red-400">
+            {shareErrorMessage}
+          </p>
         )}
 
         <button
           type="button"
           onClick={onRestart}
-          className="mt-1 text-xs tracking-[0.2em] text-gray-500 hover:text-gray-300"
+          className="w-full rounded-full border border-white/20 bg-black py-3.5 text-sm font-semibold tracking-widest text-white transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
         >
           重新選擇主題
         </button>
+        <Link
+          href="https://creativelab-sigma.vercel.app/"
+          className="w-full rounded-full border border-white/20 bg-black py-3.5 text-sm font-semibold tracking-widest text-white transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50 inline-flex justify-center text-center cursor-pointer"
+          target="_blank"
+        >
+          Creative Lab
+        </Link>
       </div>
     </div>
   );

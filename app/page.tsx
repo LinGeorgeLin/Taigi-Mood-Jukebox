@@ -99,11 +99,15 @@ export default function Page() {
   }, []);
 
   return (
-    <div className="relative h-screen h-[100dvh] w-full overflow-hidden bg-black text-white">
+    <div className={`relative w-full bg-black text-white transition-all duration-300 ${
+        stage === 3 
+          ? "min-h-dvh h-auto overflow-y-auto" 
+          : "h-screen h-dvh overflow-hidden"
+      }`}>
       {/* Toast 提示 */}
       {toastMessage && (
         <div
-          className={`fixed inset-x-4 bottom-6 z-[60] mx-auto max-w-sm rounded-2xl border border-white/15 bg-white/10 px-5 py-4 text-center text-xs leading-relaxed text-white backdrop-blur-md transition-all duration-300 sm:text-sm ${
+          className={`fixed inset-x-4 bottom-6 z-60 mx-auto max-w-sm rounded-2xl border border-white/15 bg-white/10 px-5 py-4 text-center text-xs leading-relaxed text-white backdrop-blur-md transition-all duration-300 sm:text-sm ${
             toastVisible
               ? "translate-y-0 opacity-100"
               : "translate-y-3 opacity-0"

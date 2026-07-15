@@ -203,8 +203,8 @@ const sendAudioToServer = useCallback(
       {/* 主要內容 */}
       <div className="my-auto flex w-full max-w-xl flex-1 flex-col items-center justify-center px-4 text-center">
         <span
-          className="mb-6 rounded-full border px-5 py-1.5 text-xs tracking-[0.2em] text-gray-300 sm:mb-10"
-          style={{ borderColor: `${mood.accent_color}50` }}
+          className="mb-6 rounded-full inline-flex items-center justify-center border px-5 py-1.5 text-xs tracking-[0.2em] text-gray-300 sm:mb-10"
+          style={{ borderColor: `${mood.accent_color}50`, paddingLeft: "calc(1.25rem + 0.2em)" }}
         >
           {mood.label}
         </span>
