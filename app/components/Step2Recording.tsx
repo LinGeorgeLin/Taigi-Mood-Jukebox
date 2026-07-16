@@ -200,27 +200,27 @@ const sendAudioToServer = useCallback(
         <span className="text-xs tracking-widest">返回</span>
       </button>
 
-      {/* 主要內容 */}
-      <div className="my-auto flex w-full max-w-xl flex-1 flex-col items-center justify-center px-4 text-center">
+      {/* 主要內容：優化 my-auto 垂直空間，避免過度膨脹擠壓 */}
+      <div className="my-auto flex w-full max-w-xl flex-col items-center justify-center px-4 py-6 text-center">
         <span
-          className="mb-6 rounded-full inline-flex items-center justify-center border px-5 py-1.5 text-xs tracking-[0.2em] text-gray-300 sm:mb-10"
+          className="mb-4 rounded-full inline-flex items-center justify-center border px-5 py-1.5 text-xs tracking-[0.2em] text-gray-300 sm:mb-8"
           style={{ borderColor: `${mood.accent_color}50`, paddingLeft: "calc(1.25rem + 0.2em)" }}
         >
           {mood.label}
         </span>
 
-        <p className="w-full max-w-prose break-words text-xl font-bold leading-relaxed text-white sm:text-2xl md:text-4xl">
+        <p className="w-full max-w-prose break-words text-xl font-bold leading-relaxed text-white sm:text-2xl md:text-3xl">
           {mood.hanji}
         </p>
         <p
-          className="mt-3 break-words text-center text-xs tracking-wide sm:mt-4 sm:text-sm"
+          className="mt-2 break-words text-center text-xs tracking-wide sm:mt-3 sm:text-sm"
           style={{ color: mood.accent_color }}
         >
           {mood.tailo}
         </p>
 
         {/* 錄音按鈕區 */}
-        <div className="mt-8 flex flex-col items-center sm:mt-12">
+        <div className="mt-6 flex flex-col items-center sm:mt-10">
           {isLoading ? (
             <div className="flex flex-col items-center gap-4">
               <span className="h-12 w-12 animate-spin rounded-full border-2 border-white/20 border-t-white sm:h-14 sm:w-14" />
@@ -233,7 +233,7 @@ const sendAudioToServer = useCallback(
               type="button"
               onClick={handleMicClick}
               aria-label={isRecording ? "停止錄音" : "開始錄音"}
-              className="relative flex h-28 w-28 items-center justify-center rounded-full sm:h-32 sm:w-32 md:h-36 md:w-36"
+              className="relative flex h-24 w-24 items-center justify-center rounded-full sm:h-28 sm:w-28 md:h-32 md:w-32"
             >
               <span
                 className={`absolute inset-0 rounded-full ${
@@ -249,7 +249,7 @@ const sendAudioToServer = useCallback(
                 <span className="absolute inset-0 rounded-full bg-red-500/20 animate-ping" />
               )}
               <span
-                className={`relative flex h-20 w-20 items-center justify-center rounded-full border text-3xl transition-all sm:h-24 sm:w-24 sm:text-4xl md:h-28 md:w-28 ${
+                className={`relative flex h-18 w-18 items-center justify-center rounded-full border text-2xl transition-all sm:h-20 sm:w-20 sm:text-3xl md:h-24 md:w-24 ${
                   isRecording
                     ? "border-red-400/60 bg-red-500/10"
                     : "border-white/20 bg-white/5"
@@ -260,7 +260,7 @@ const sendAudioToServer = useCallback(
             </button>
           )}
 
-          <p className="mt-4 h-5 text-xs tracking-widest text-gray-500 sm:mt-6">
+          <p className="mt-3 h-5 text-xs tracking-widest text-gray-500 sm:mt-4">
             {isLoading
               ? ""
               : isRecording
@@ -270,25 +270,26 @@ const sendAudioToServer = useCallback(
         </div>
 
         {errorMessage && (
-          <div className="mt-4 rounded-xl border border-red-500/30 bg-red-500/5 px-6 py-3 text-sm text-red-300 sm:mt-6">
+          <div className="mt-4 rounded-xl border border-red-500/30 bg-red-500/5 px-6 py-3 text-sm text-red-300">
             {errorMessage}
           </div>
         )}
 
+        {/* ⚡ 修正點：調小電腦版的上下 Padding，並將理由文字顏色調亮為 text-gray-400 */}
         {showFailHint && (
-          <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.03] px-8 py-4 text-center sm:mt-6">
-            <p className="text-sm text-gray-300">
+          <div className="mt-4 w-full rounded-xl border border-white/10 bg-white/[0.03] px-6 py-3 text-center sm:mt-6">
+            <p className="text-sm font-medium text-gray-300">
               再試一次，你差一點點就成功了！
             </p>
             {matchReason && (
-              <p className="mt-1 text-xs text-gray-600">{matchReason}</p>
+              <p className="mt-1 text-xs text-gray-400">{matchReason}</p>
             )}
           </div>
         )}
       </div>
 
-      {/* 隱私宣告：固定貼在畫面最底部 */}
-      <p className="mt-auto max-w-md pt-4 text-center text-[10px] leading-normal text-gray-600 sm:text-xs">
+      {/* 隱私宣告：pt-2 稍微緊湊，確保不被壓出卡片邊界 */}
+      <p className="mt-auto max-w-md pt-2 text-center text-[10px] leading-normal text-gray-600 sm:text-xs">
         點擊錄音即代表您同意本站將音訊以去識別化方式用於台語 AI
         模型訓練與文化保存。
       </p>
